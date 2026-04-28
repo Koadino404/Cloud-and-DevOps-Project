@@ -87,8 +87,27 @@ function UploadScreen() {
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(resultLink);
-    alert('Link copied to clipboard!');
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(resultLink);
+      alert('Link copied to clipboard!');
+    } else {
+      // Fallback for HTTP connections (like our AWS IP address)
+      const textArea = document.createElement("textarea");
+      textArea.value = resultLink;
+      textArea.style.position = "absolute";
+      textArea.style.left = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy', err);
+        alert('Failed to copy. Please select the link text manually.');
+      } finally {
+        textArea.remove();
+      }
+    }
   };
 
   return (
