@@ -76,10 +76,22 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# 4. EC2 Instance
+# 4. SSH Key Pair
+resource "tls_private_key" "deployer_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "miniwetransfer-deployer-key"
+  public_key = tls_private_key.deployer_key.public_key_openssh
+}
+
+# 5. EC2 Instance
 resource "aws_instance" "web_server" {
   ami           = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS (us-east-1)
   instance_type = "t3.micro"
+  key_name      = aws_key_pair.deployer.key_name
   security_groups = [aws_security_group.web_sg.name]
 
   user_data = <<-EOF
