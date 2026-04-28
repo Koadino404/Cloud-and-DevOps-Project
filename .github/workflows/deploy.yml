@@ -36,5 +36,13 @@ jobs:
             fi
             cd /home/ubuntu/MiniWeTransfer
             git pull origin main
+            
+            echo "PORT=5000" > backend/.env
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> backend/.env
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> backend/.env
+            echo "AWS_REGION=us-east-1" >> backend/.env
+            echo "S3_BUCKET_NAME=miniwetransfer-uploads-dev-12345" >> backend/.env
+            echo "DYNAMODB_TABLE_NAME=MiniWeTransferFiles" >> backend/.env
+
             sudo docker-compose down || true
             sudo docker-compose up -d --build
