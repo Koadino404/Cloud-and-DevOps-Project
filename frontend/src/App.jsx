@@ -66,7 +66,7 @@ function UploadScreen() {
     formData.append('expiryHours', expiryHours);
 
     try {
-      const response = await fetch('http://localhost:5000/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -180,7 +180,7 @@ function DownloadScreen({ fileId }) {
   useEffect(() => {
     const fetchFile = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/download/${fileId}`);
+        const response = await fetch(`/api/download/${fileId}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -244,7 +244,7 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const response = await fetch('http://localhost:5000/admin/files');
+        const response = await fetch('/api/admin/files');
         if (response.ok) {
           const data = await response.json();
           setFiles(data);
