@@ -190,6 +190,7 @@ function DownloadScreen({ fileId }) {
           setError(data.error || 'Failed to find file');
         }
       } catch (err) {
+        console.error(err);
         setError('Network error');
       } finally {
         setLoading(false);
