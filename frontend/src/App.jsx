@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
 import './index.css';
 
 function App() {
@@ -171,6 +172,20 @@ function UploadScreen() {
             <div className="link-box">
               <span className="link-text">{resultLink}</span>
               <button className="btn-copy" onClick={copyToClipboard}>Copy</button>
+            </div>
+
+            <div className="qr-container" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <p style={{ fontSize: '0.875rem', color: '#cbd5e1', marginBottom: '0.75rem', fontWeight: 500 }}>Scan to download</p>
+              <div style={{ padding: '0.5rem', background: 'white', borderRadius: '8px' }}>
+                <QRCodeCanvas 
+                  value={resultLink} 
+                  size={160}
+                  bgColor={"#ffffff"}
+                  fgColor={"#0f172a"}
+                  level={"H"}
+                  includeMargin={false}
+                />
+              </div>
             </div>
 
             <button 
