@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import axios from 'axios';
 import './index.css';
 
 function App() {
@@ -28,9 +29,20 @@ function UploadScreen() {
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [resultLink, setResultLink] = useState('');
   const [expiryHours, setExpiryHours] = useState(24);
+  const [isLightMode, setIsLightMode] = useState(false);
   const fileInputRef = useRef(null);
+
+  const toggleTheme = () => {
+    setIsLightMode(!isLightMode);
+    if (!isLightMode) {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+  };
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -61,29 +73,31 @@ function UploadScreen() {
   const onUploadClick = async () => {
     if (!file) return;
     setUploading(true);
+    setUploadProgress(0);
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('expiryHours', expiryHours);
 
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+        }
       });
       
-      const data = await response.json();
-      if (response.ok) {
-        const link = `${window.location.origin}/download/${data.fileId}`;
-        setResultLink(link);
-      } else {
-        alert(data.error || 'Upload failed');
-      }
+      const link = `${window.location.origin}/download/${response.data.fileId}`;
+      setResultLink(link);
     } catch (err) {
       console.error(err);
-      alert('Network error during upload');
+      alert(err.response?.data?.error || 'Network error during upload');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -113,6 +127,9 @@ function UploadScreen() {
 
   return (
     <div className="app-container">
+      <div className="theme-toggle" onClick={toggleTheme} title="Toggle Theme">
+        {isLightMode ? '🌙' : '☀️'}
+      </div>
       <div className="glass-panel">
         <h1>Mini WeTransfer</h1>
         <p className="subtitle">Secure, temporary file sharing</p>
@@ -143,11 +160,11 @@ function UploadScreen() {
 
             {file && (
               <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
-                <label style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Expires in (Hours): </label>
+                <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Expires in (Hours): </label>
                 <select 
                   value={expiryHours} 
                   onChange={(e) => setExpiryHours(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem' }}
+                  style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem' }}
                 >
                   <option value={1} style={{color: 'black'}}>1 Hour</option>
                   <option value={24} style={{color: 'black'}}>24 Hours</option>
@@ -155,6 +172,13 @@ function UploadScreen() {
                 </select>
               </div>
             )}
+
+            {uploading && uploadProgress > 0 && (
+              <div className="progress-container">
+                <div className="progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+              </div>
+            )}
+            {uploading && <div className="progress-text">Uploading: {uploadProgress}%</div>}
 
             <button 
               className="btn-primary" 
