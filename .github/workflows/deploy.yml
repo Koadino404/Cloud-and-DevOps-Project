@@ -31,7 +31,10 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            if [ ! -d "/home/ubuntu/MiniWeTransfer" ]; then
+              git clone https://github.com/${{ github.repository }}.git /home/ubuntu/MiniWeTransfer
+            fi
             cd /home/ubuntu/MiniWeTransfer
             git pull origin main
-            docker-compose down
-            docker-compose up -d --build
+            sudo docker-compose down || true
+            sudo docker-compose up -d --build
