@@ -20,7 +20,7 @@ app.use(express.json());
 
 // Configure Multer to keep files in memory (we'll upload directly to S3)
 const storage = multer.memoryStorage();
-const upload = multer({ storage: storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB limit
+const upload = multer({ storage: storage, limits: { fileSize: 500 * 1024 * 1024 } }); // 500MB limit
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -28,7 +28,16 @@ app.get('/health', (req, res) => {
 });
 
 // Upload Endpoint
-app.post('/upload', upload.single('file'), async (req, res) => {
+app.post('/upload', (req, res, next) => {
+  upload.single('file')(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(500).json({ error: 'Unknown upload error' });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
