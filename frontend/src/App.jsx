@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import axios from 'axios';
 import './index.css';
@@ -252,7 +252,7 @@ function DownloadScreen({ fileId }) {
   const [needsPin, setNeedsPin] = useState(false);
   const [pin, setPin] = useState('');
 
-  const fetchFile = async (currentPin = '') => {
+  const fetchFile = useCallback(async (currentPin = '') => {
     setLoading(true);
     setError('');
     try {
@@ -277,11 +277,12 @@ function DownloadScreen({ fileId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fileId]);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchFile();
-  }, [fileId]);
+  }, [fetchFile]);
 
   if (loading && !needsPin) return (
     <div className="app-container"><div className="glass-panel"><h2>Loading...</h2></div></div>
