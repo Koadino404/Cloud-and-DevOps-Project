@@ -33,6 +33,7 @@ function UploadScreen() {
   const [resultLink, setResultLink] = useState('');
   const [expiryHours, setExpiryHours] = useState(24);
   const [pin, setPin] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
   const [isLightMode, setIsLightMode] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -80,6 +81,7 @@ function UploadScreen() {
     formData.append('file', file);
     formData.append('expiryHours', expiryHours);
     if (pin) formData.append('pin', pin);
+    if (recipientEmail) formData.append('recipientEmail', recipientEmail);
 
     try {
       const response = await axios.post('/api/upload', formData, {
@@ -183,6 +185,16 @@ function UploadScreen() {
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
                     style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem', width: '120px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Email to (Optional): </label>
+                  <input 
+                    type="email" 
+                    placeholder="friend@example.com"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem', width: '200px' }}
                   />
                 </div>
               </div>

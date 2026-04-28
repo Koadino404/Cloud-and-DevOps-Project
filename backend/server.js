@@ -10,6 +10,8 @@ const {
   getSignedUrl,
   PutCommand,
   GetCommand,
+  sesClient,
+  SendEmailCommand,
   BUCKET_NAME,
   TABLE_NAME
 } = require('./aws');
@@ -74,6 +76,44 @@ app.post('/upload', (req, res, next) => {
     };
     if (pin) dbParams.Item.pin = pin;
     await docClient.send(new PutCommand(dbParams));
+
+    const recipientEmail = req.body.recipientEmail;
+    if (recipientEmail) {
+      // In SES Sandbox, the sender email must be verified. 
+      // We will try to use the recipientEmail as the sender as well if SES_SENDER_EMAIL is not set.
+      const senderEmail = process.env.SES_SENDER_EMAIL || recipientEmail;
+      
+      const downloadLink = `${req.protocol}://${req.get('host')}/download/${fileId}`;
+      const emailParams = {
+        Source: senderEmail,
+        Destination: { ToAddresses: [recipientEmail] },
+        Message: {
+          Subject: { Data: `Someone sent you a file via Mini WeTransfer!` },
+          Body: {
+            Html: {
+              Data: `
+                <h2>You've received a file!</h2>
+                <p><strong>Filename:</strong> ${req.file.originalname}</p>
+                <p><strong>Size:</strong> ${(req.file.size / (1024*1024)).toFixed(2)} MB</p>
+                <br/>
+                <p>Click the link below to download your file before it expires:</p>
+                <a href="${downloadLink}" style="padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px;">Download File</a>
+                <br/><br/>
+                <p>Or copy and paste this link: ${downloadLink}</p>
+              `
+            }
+          }
+        }
+      };
+
+      try {
+        await sesClient.send(new SendEmailCommand(emailParams));
+        console.log(`Email successfully sent to ${recipientEmail}`);
+      } catch (emailErr) {
+        console.error("Failed to send email via SES:", emailErr);
+        // We do not fail the upload just because the email failed.
+      }
+    }
 
     // 3. Return the download link ID
     res.status(200).json({

@@ -2,6 +2,7 @@ const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/clien
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -27,6 +28,15 @@ const dynamoClient = new DynamoDBClient({
 });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
+// Configure SES Client
+const sesClient = new SESClient({
+  region: REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
 module.exports = {
   s3Client,
   docClient,
@@ -36,6 +46,8 @@ module.exports = {
   PutCommand,
   GetCommand,
   ScanCommand,
+  sesClient,
+  SendEmailCommand,
   BUCKET_NAME: process.env.S3_BUCKET_NAME,
   TABLE_NAME: process.env.DYNAMODB_TABLE_NAME,
 };
