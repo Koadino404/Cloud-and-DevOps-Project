@@ -47,6 +47,7 @@ app.post('/upload', (req, res, next) => {
     const expiryHours = parseInt(req.body.expiryHours) || 24;
     const expiresAt = Math.floor(Date.now() / 1000) + (expiryHours * 60 * 60); // Unix timestamp
     const s3Key = `${fileId}-${req.file.originalname}`;
+    const pin = req.body.pin || null;
 
     // 1. Upload file to S3
     const s3Params = {
@@ -71,6 +72,7 @@ app.post('/upload', (req, res, next) => {
         downloadCount: 0
       }
     };
+    if (pin) dbParams.Item.pin = pin;
     await docClient.send(new PutCommand(dbParams));
 
     // 3. Return the download link ID
@@ -100,6 +102,17 @@ app.get('/download/:id', async (req, res) => {
 
     if (!Item) {
       return res.status(404).json({ error: 'File not found or expired' });
+    }
+
+    // Check PIN if required
+    if (Item.pin) {
+      const providedPin = req.query.pin;
+      if (!providedPin) {
+        return res.status(401).json({ error: 'This file is protected by a PIN.', requirePin: true });
+      }
+      if (providedPin !== Item.pin) {
+        return res.status(401).json({ error: 'Incorrect PIN.', requirePin: true });
+      }
     }
 
     // 2. Check if expired

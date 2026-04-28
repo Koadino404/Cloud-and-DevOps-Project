@@ -32,6 +32,7 @@ function UploadScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [resultLink, setResultLink] = useState('');
   const [expiryHours, setExpiryHours] = useState(24);
+  const [pin, setPin] = useState('');
   const [isLightMode, setIsLightMode] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -78,6 +79,7 @@ function UploadScreen() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('expiryHours', expiryHours);
+    if (pin) formData.append('pin', pin);
 
     try {
       const response = await axios.post('/api/upload', formData, {
@@ -159,17 +161,30 @@ function UploadScreen() {
             </div>
 
             {file && (
-              <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
-                <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Expires in (Hours): </label>
-                <select 
-                  value={expiryHours} 
-                  onChange={(e) => setExpiryHours(e.target.value)}
-                  style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem' }}
-                >
-                  <option value={1} style={{color: 'black'}}>1 Hour</option>
-                  <option value={24} style={{color: 'black'}}>24 Hours</option>
-                  <option value={72} style={{color: 'black'}}>3 Days</option>
-                </select>
+              <div style={{ marginTop: '1.5rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Expires in (Hours): </label>
+                  <select 
+                    value={expiryHours} 
+                    onChange={(e) => setExpiryHours(e.target.value)}
+                    style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem' }}
+                  >
+                    <option value={1} style={{color: 'black'}}>1 Hour</option>
+                    <option value={24} style={{color: 'black'}}>24 Hours</option>
+                    <option value={72} style={{color: 'black'}}>3 Days</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Protect with PIN (Optional): </label>
+                  <input 
+                    type="text" 
+                    placeholder="4-digit PIN"
+                    maxLength="4"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.5rem', borderRadius: '8px', marginLeft: '0.5rem', width: '120px' }}
+                  />
+                </div>
               </div>
             )}
 
@@ -234,34 +249,66 @@ function DownloadScreen({ fileId }) {
   const [error, setError] = useState('');
   const [downloadUrl, setDownloadUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [needsPin, setNeedsPin] = useState(false);
+  const [pin, setPin] = useState('');
 
-  useEffect(() => {
-    const fetchFile = async () => {
-      try {
-        const response = await fetch(`/api/download/${fileId}`);
-        const data = await response.json();
-        
-        if (response.ok) {
-          setMetadata(data.metadata);
-          setDownloadUrl(data.downloadUrl);
+  const fetchFile = async (currentPin = '') => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/download/${fileId}?pin=${currentPin}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setNeedsPin(false);
+        setMetadata(data.metadata);
+        setDownloadUrl(data.downloadUrl);
+      } else {
+        if (data.requirePin) {
+          setNeedsPin(true);
+          if (currentPin) setError('Incorrect PIN. Try again.');
         } else {
           setError(data.error || 'Failed to find file');
         }
-      } catch (err) {
-        console.error(err);
-        setError('Network error');
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error(err);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchFile();
   }, [fileId]);
 
-  if (loading) return (
+  if (loading && !needsPin) return (
     <div className="app-container"><div className="glass-panel"><h2>Loading...</h2></div></div>
   );
 
-  if (error) return (
+  if (needsPin && !metadata) return (
+    <div className="app-container">
+      <div className="glass-panel">
+        <h2>🔒 PIN Required</h2>
+        <p style={{marginTop: '1rem', color: 'var(--text-secondary)'}}>This file is protected by a PIN code.</p>
+        <div style={{ marginTop: '1.5rem' }}>
+          <input 
+            type="password" 
+            placeholder="Enter PIN"
+            maxLength="4"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', padding: '0.75rem', borderRadius: '8px', width: '100%', textAlign: 'center', letterSpacing: '0.5rem', fontSize: '1.5rem' }}
+          />
+        </div>
+        {error && <p style={{color: '#f87171', marginTop: '1rem'}}>{error}</p>}
+        <button className="btn-primary" onClick={() => fetchFile(pin)}>Unlock File</button>
+      </div>
+    </div>
+  );
+
+  if (error && !needsPin) return (
     <div className="app-container">
       <div className="glass-panel">
         <h2 style={{color: '#f87171'}}>⚠️ Oops!</h2>
